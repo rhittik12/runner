@@ -1,0 +1,64 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skyline Surge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Saira+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+
+  <main class="shell">
+    <header class="topbar">
+      <h1>Skyline Surge</h1>
+      <p class="subtitle">Run. Jump. Blast. Hold the line through the dusk skyline.</p>
+    </header>
+
+    <section class="hud" aria-label="Game stats">
+      <article class="stat"><p class="k">Score</p><p id="scoreVal" class="v">0</p></article>
+      <article class="stat"><p class="k">Distance</p><p id="distanceVal" class="v">0m</p></article>
+      <article class="stat"><p class="k">Lives</p><p id="livesVal" class="v">3</p></article>
+      <article class="stat"><p class="k">Level</p><p id="levelVal" class="v">1</p></article>
+      <article class="stat"><p class="k">Combo</p><p id="comboVal" class="v">x1</p></article>
+      <article class="stat">
+        <p class="k">Overdrive</p>
+        <div class="meter"><span id="overdriveFill" class="meter-fill"></span></div>
+      </article>
+    </section>
+
+    <section class="arena-wrap">
+      <canvas id="gameCanvas" width="1100" height="620" aria-label="Skyline Surge game"></canvas>
+      <div class="scan"></div>
+      <div id="overlay" class="overlay visible">
+        <div class="card">
+          <h2 id="overlayTitle">Skyline Surge</h2>
+          <p id="overlayText">An arcade runner-shooter set on a collapsing skyline expressway. Dodge barriers, destroy drones, collect flux shards, and trigger overdrive with <kbd>Shift</kbd>.</p>
+          <button id="startBtn" type="button">Start Mission</button>
+          <p class="controls">Move: <kbd>A</kbd>/<kbd>D</kbd> • Jump: <kbd>W</kbd>/<kbd>Space</kbd> • Shoot: <kbd>J</kbd>/<kbd>K</kbd> • Overdrive: <kbd>Shift</kbd> • Pause: <kbd>P</kbd></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="run-controls" aria-label="Run controls">
+      <button id="pauseBtn" type="button">Pause</button>
+      <button id="resumeBtn" type="button" disabled>Resume</button>
+      <button id="restartBtn" type="button">Restart</button>
+    </section>
+
+    <section class="touchpad" aria-label="Touch controls">
+      <button data-action="left" type="button">Left</button>
+      <button data-action="right" type="button">Right</button>
+      <button data-action="jump" type="button">Jump</button>
+      <button data-action="shoot" type="button">Shoot</button>
+      <button data-action="boost" type="button">Boost</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
