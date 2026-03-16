@@ -489,20 +489,38 @@ function updateBullets(dt) {
 
 function updateEnemyBullets(dt) {
   for (let i = game.enemyBullets.length - 1; i >= 0; i -= 1) {
-    const b = game.enemyBullets[i];
-    b.x += b.vx * dt;
-    if (b.vy) b.y += b.vy * dt;
-    b.life -= dt;
+    const eb = game.enemyBullets[i];
+    eb.x += eb.vx * dt;
+    if (eb.vy) eb.y += eb.vy * dt;
+    eb.life -= dt;
 
-    if (b.x < -40 || b.x > WORLD.width + 40 || b.y < -40 || b.y > WORLD.height + 40 || b.life <= 0) {
+    if (eb.x < -40 || eb.x > WORLD.width + 40 || eb.y < -40 || eb.y > WORLD.height + 40 || eb.life <= 0) {
       game.enemyBullets.splice(i, 1);
       continue;
     }
 
-    const bulletRect = { x: b.x, y: b.y, w: b.w, h: b.h };
+    const enemyBulletRect = { x: eb.x, y: eb.y, w: eb.w, h: eb.h };
+
+    let bulletDestroyed = false;
+    for (let j = game.bullets.length - 1; j >= 0; j -= 1) {
+      const pb = game.bullets[j];
+      const playerBulletRect = { x: pb.x, y: pb.y, w: pb.w, h: pb.h };
+      if (rectsOverlap(enemyBulletRect, playerBulletRect)) {
+        game.bullets.splice(j, 1);
+        game.enemyBullets.splice(i, 1);
+        addExplosion(eb.x + eb.w * 0.5, eb.y + eb.h * 0.5, "#ffc9e2", 8);
+        bulletDestroyed = true;
+        break;
+      }
+    }
+
+    if (bulletDestroyed) {
+      continue;
+    }
+
     const playerRect = { x: game.player.x + 10, y: game.player.y + 8, w: game.player.w - 18, h: game.player.h - 12 };
 
-    if (game.player.invuln <= 0 && rectsOverlap(bulletRect, playerRect)) {
+    if (game.player.invuln <= 0 && rectsOverlap(enemyBulletRect, playerRect)) {
       game.enemyBullets.splice(i, 1);
       damagePlayer();
     }
@@ -527,22 +545,17 @@ function updateEnemies(dt, speed) {
     if (e.type === "drone") {
       e.y += Math.sin(e.t * 4 + e.phase) * 26 * dt;
     } else if (e.type === "shooter") {
-      e.y += Math.sin(e.t * 6 + e.phase) * 350 * dt;
+      e.y += Math.sin(e.t * 5 + e.phase) * 250 * dt;
       e.y = clamp(e.y, 50, GROUND_Y - e.h - 10);
       e.fireCooldown -= dt;
-      if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x > game.player.x) {
-        const dx = (game.player.x + game.player.w * 0.5) - e.x;
-        const dy = (game.player.y + game.player.h * 0.5) - (e.y + e.h * 0.5);
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        
+      if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x > game.player.x + game.player.w) {
         game.enemyBullets.push({
-          x: e.x - 10,
-          y: e.y + e.h * 0.5 - 6,
-          w: 12,
-          h: 12,
-          vx: (dx / dist) * 550,
-          vy: (dy / dist) * 550,
-          life: 3.5
+          x: e.x - 20,
+          y: e.y + e.h * 0.46,
+          w: 20,
+          h: 6,
+          vx: -780,
+          life: 1.4
         });
         e.fireCooldown = PLAYER.fireCooldown;
       }
@@ -870,9 +883,7 @@ function drawEnemyBullets() {
     ctx.fillStyle = "#ff6b9f";
     ctx.shadowColor = "rgba(255, 107, 159, 0.8)";
     ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(b.x + b.w * 0.5, b.y + b.h * 0.5, b.w * 0.5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.shadowBlur = 0;
   }
 }
