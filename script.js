@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 const WORLD = { width: 1100, height: 620 };
 const GROUND_Y = 500;
@@ -55,6 +55,7 @@ const audioFx = {
 const game = {
   player: null,
   bullets: [],
+  enemyBullets: [],
   enemies: [],
   pickups: [],
   particles: [],
@@ -200,6 +201,7 @@ function resetGame() {
   };
 
   game.bullets.length = 0;
+  game.enemyBullets.length = 0;
   game.enemies.length = 0;
   game.pickups.length = 0;
   game.particles.length = 0;
@@ -274,7 +276,27 @@ function spawnEnemy() {
   const speedBoost = (game.level - 1) * 0.02;
   const pointBonus = (game.level - 1) * 12;
 
-  if (roll < 0.42) {
+  if (roll < 0.25) {
+    const hp = 2 + hpBoost;
+    game.enemies.push({
+      type: "shooter",
+      x: WORLD.width + 50,
+      y: rand(150, 400),
+      w: 64,
+      h: 40,
+      hp: hp,
+      maxHp: hp,
+      speedMul: rand(0.7, 0.95) + speedBoost,
+      points: 220 + pointBonus,
+      phase: 0,
+      t: 0,
+      hitFlash: 0,
+      fireCooldown: rand(1.2, 2.0)
+    });
+    return;
+  }
+
+  if (roll < 0.55) {
     const droneHp = game.level >= 8 ? 2 : 1;
     game.enemies.push({
       type: "drone",
@@ -383,7 +405,7 @@ function destroyEnemy(index) {
   game.overdrive = clamp(game.overdrive + 14 + e.maxHp * 4, 0, 100);
   game.shake = Math.max(game.shake, 8);
 
-  addExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, e.type === "drone" ? "#8bf2ff" : "#ff9d9d", 22 + e.maxHp * 4);
+  addExplosion(e.x + e.w * 0.5, e.y + e.h * 0.5, e.type === "drone" ? "#8bf2ff" : (e.type === "shooter" ? "#ff6b9f" : "#ff9d9d"), 22 + e.maxHp * 4);
   game.enemies.splice(index, 1);
 }
 
@@ -465,6 +487,27 @@ function updateBullets(dt) {
   }
 }
 
+function updateEnemyBullets(dt) {
+  for (let i = game.enemyBullets.length - 1; i >= 0; i -= 1) {
+    const b = game.enemyBullets[i];
+    b.x += b.vx * dt;
+    b.life -= dt;
+
+    if (b.x < -40 || b.life <= 0) {
+      game.enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    const bulletRect = { x: b.x, y: b.y, w: b.w, h: b.h };
+    const playerRect = { x: game.player.x + 10, y: game.player.y + 8, w: game.player.w - 18, h: game.player.h - 12 };
+
+    if (game.player.invuln <= 0 && rectsOverlap(bulletRect, playerRect)) {
+      game.enemyBullets.splice(i, 1);
+      damagePlayer();
+    }
+  }
+}
+
 function updateEnemies(dt, speed) {
   game.spawnEnemyIn -= dt;
   if (game.spawnEnemyIn <= 0) {
@@ -482,6 +525,20 @@ function updateEnemies(dt, speed) {
     e.x -= speed * e.speedMul * dt;
     if (e.type === "drone") {
       e.y += Math.sin(e.t * 4 + e.phase) * 26 * dt;
+    } else if (e.type === "shooter") {
+      e.y += Math.sin(e.t * 2 + e.phase) * 15 * dt;
+      e.fireCooldown -= dt;
+      if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x - game.player.x < 550 && e.x > game.player.x) {
+        game.enemyBullets.push({
+          x: e.x,
+          y: e.y + e.h * 0.5 - 3,
+          w: 16,
+          h: 6,
+          vx: -500,
+          life: 3.5
+        });
+        e.fireCooldown = rand(1.8, 2.8);
+      }
     }
 
     if (e.x + e.w < -50) {
@@ -654,6 +711,7 @@ function update(dt) {
   updateOverdrive(dt);
   updatePlayer(dt);
   updateBullets(dt);
+  updateEnemyBullets(dt);
   updateEnemies(dt, speed);
   updatePickups(dt, speed);
   updateParticles(dt);
@@ -799,9 +857,41 @@ function drawBullets() {
   }
 }
 
+function drawEnemyBullets() {
+  for (let i = 0; i < game.enemyBullets.length; i += 1) {
+    const b = game.enemyBullets[i];
+    ctx.fillStyle = "#ff6b9f";
+    ctx.shadowColor = "rgba(255, 107, 159, 0.8)";
+    ctx.shadowBlur = 12;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.shadowBlur = 0;
+  }
+}
+
 function drawEnemies() {
   for (let i = 0; i < game.enemies.length; i += 1) {
     const e = game.enemies[i];
+
+    if (e.type === "shooter") {
+      ctx.save();
+      ctx.translate(e.x + e.w * 0.5, e.y + e.h * 0.5);
+      ctx.fillStyle = e.hitFlash > 0 ? "#ffffff" : "#a3455b";
+      ctx.shadowColor = "rgba(255, 107, 159, 0.45)";
+      ctx.shadowBlur = e.hitFlash > 0 ? 20 : 10;
+      ctx.fillRect(-28, -12, 56, 24);
+      ctx.fillStyle = "#ff85af";
+      ctx.fillRect(-20, -6, 20, 12);
+      ctx.fillStyle = "#2b3240";
+      ctx.fillRect(8, -4, 20, 8);
+      ctx.restore();
+      
+      const hpRatio = e.hp / e.maxHp;
+      ctx.fillStyle = "rgba(12, 16, 28, 0.7)";
+      ctx.fillRect(e.x + 8, e.y - 12, e.w - 16, 5);
+      ctx.fillStyle = "#ffd7a3";
+      ctx.fillRect(e.x + 8, e.y - 12, (e.w - 16) * hpRatio, 5);
+      continue;
+    }
 
     if (e.type === "drone") {
       ctx.save();
@@ -1018,6 +1108,7 @@ function render() {
   drawGround();
   drawPickups();
   drawBullets();
+  drawEnemyBullets();
   drawEnemies();
   drawPlayer();
   drawParticles();
