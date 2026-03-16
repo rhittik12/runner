@@ -277,7 +277,7 @@ function spawnEnemy() {
   const pointBonus = (game.level - 1) * 12;
 
   if (roll < 0.25) {
-    const hp = 2 + hpBoost;
+    const hp = 1;
     game.enemies.push({
       type: "shooter",
       x: WORLD.width + 50,
@@ -286,12 +286,12 @@ function spawnEnemy() {
       h: 40,
       hp: hp,
       maxHp: hp,
-      speedMul: rand(0.7, 0.95) + speedBoost,
+      speedMul: rand(1.1, 1.4) + speedBoost,
       points: 220 + pointBonus,
-      phase: 0,
+      phase: rand(0, Math.PI * 2),
       t: 0,
       hitFlash: 0,
-      fireCooldown: rand(1.2, 2.0)
+      fireCooldown: PLAYER.fireCooldown
     });
     return;
   }
@@ -491,9 +491,10 @@ function updateEnemyBullets(dt) {
   for (let i = game.enemyBullets.length - 1; i >= 0; i -= 1) {
     const b = game.enemyBullets[i];
     b.x += b.vx * dt;
+    if (b.vy) b.y += b.vy * dt;
     b.life -= dt;
 
-    if (b.x < -40 || b.life <= 0) {
+    if (b.x < -40 || b.x > WORLD.width + 40 || b.y < -40 || b.y > WORLD.height + 40 || b.life <= 0) {
       game.enemyBullets.splice(i, 1);
       continue;
     }
@@ -526,18 +527,24 @@ function updateEnemies(dt, speed) {
     if (e.type === "drone") {
       e.y += Math.sin(e.t * 4 + e.phase) * 26 * dt;
     } else if (e.type === "shooter") {
-      e.y += Math.sin(e.t * 2 + e.phase) * 15 * dt;
+      e.y += Math.sin(e.t * 6 + e.phase) * 350 * dt;
+      e.y = clamp(e.y, 50, GROUND_Y - e.h - 10);
       e.fireCooldown -= dt;
-      if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x - game.player.x < 550 && e.x > game.player.x) {
+      if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x > game.player.x) {
+        const dx = (game.player.x + game.player.w * 0.5) - e.x;
+        const dy = (game.player.y + game.player.h * 0.5) - (e.y + e.h * 0.5);
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        
         game.enemyBullets.push({
-          x: e.x,
-          y: e.y + e.h * 0.5 - 3,
-          w: 16,
-          h: 6,
-          vx: -500,
+          x: e.x - 10,
+          y: e.y + e.h * 0.5 - 6,
+          w: 12,
+          h: 12,
+          vx: (dx / dist) * 550,
+          vy: (dy / dist) * 550,
           life: 3.5
         });
-        e.fireCooldown = rand(1.8, 2.8);
+        e.fireCooldown = PLAYER.fireCooldown;
       }
     }
 
@@ -863,7 +870,9 @@ function drawEnemyBullets() {
     ctx.fillStyle = "#ff6b9f";
     ctx.shadowColor = "rgba(255, 107, 159, 0.8)";
     ctx.shadowBlur = 12;
-    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.beginPath();
+    ctx.arc(b.x + b.w * 0.5, b.y + b.h * 0.5, b.w * 0.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.shadowBlur = 0;
   }
 }
