@@ -483,6 +483,22 @@ function updateBullets(dt) {
 
     if (b.x > WORLD.width + 80 || b.life <= 0) {
       game.bullets.splice(i, 1);
+      continue;
+    }
+
+    let hitEnemyBullet = false;
+    for (let j = game.enemyBullets.length - 1; j >= 0; j -= 1) {
+      const eb = game.enemyBullets[j];
+      if (rectsOverlap(b, eb)) {
+        game.enemyBullets.splice(j, 1);
+        hitEnemyBullet = true;
+        addExplosion(b.x + b.w, b.y + b.h * 0.5, "#ffffff", 6);
+        break;
+      }
+    }
+
+    if (hitEnemyBullet) {
+      game.bullets.splice(i, 1);
     }
   }
 }
@@ -531,17 +547,13 @@ function updateEnemies(dt, speed) {
       e.y = clamp(e.y, 50, GROUND_Y - e.h - 10);
       e.fireCooldown -= dt;
       if (e.fireCooldown <= 0 && e.x < WORLD.width && e.x > game.player.x) {
-        const dx = (game.player.x + game.player.w * 0.5) - e.x;
-        const dy = (game.player.y + game.player.h * 0.5) - (e.y + e.h * 0.5);
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        
         game.enemyBullets.push({
-          x: e.x - 10,
-          y: e.y + e.h * 0.5 - 6,
-          w: 12,
-          h: 12,
-          vx: (dx / dist) * 550,
-          vy: (dy / dist) * 550,
+          x: e.x - 20,
+          y: e.y + e.h * 0.5 - 3,
+          w: 20,
+          h: 6,
+          vx: -780,
+          vy: 0,
           life: 3.5
         });
         e.fireCooldown = PLAYER.fireCooldown;
@@ -888,14 +900,12 @@ function initSprites() {
 
   // Enemy Bullet
   c = document.createElement("canvas");
-  c.width = 36; c.height = 36;
+  c.width = 50; c.height = 36;
   cx = c.getContext("2d");
   cx.fillStyle = "#ff6b9f";
   cx.shadowColor = "rgba(255, 107, 159, 0.8)";
-  cx.shadowBlur = 12;
-  cx.beginPath();
-  cx.arc(18, 18, 6, 0, Math.PI * 2);
-  cx.fill();
+  cx.shadowBlur = 15;
+  cx.fillRect(15, 15, 20, 6);
   spriteCache.objEb = c;
 
   // Enemies
@@ -998,7 +1008,7 @@ function drawEnemyBullets() {
   initSprites();
   for (let i = 0; i < game.enemyBullets.length; i += 1) {
     const b = game.enemyBullets[i];
-    ctx.drawImage(spriteCache.objEb, Math.floor(b.x) - 12, Math.floor(b.y) - 12);
+    ctx.drawImage(spriteCache.objEb, Math.floor(b.x) - 15, Math.floor(b.y) - 15);
   }
 }
 
